@@ -1,0 +1,50 @@
+src/index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Server Test</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav>
+        <div class="nav-logo">WebTest</div>
+        <ul>
+            <li><a href="#home">Home</a></li>
+            <li><a href="#about">About</a></li>
+            <li><a href="#contact">Contact</a></li>
+        </ul>
+    </nav>
+
+    <header id="home">
+        <h1>Welcome to Web Server Test</h1>
+        <p>This page tests various HTML elements and server features</p>
+    </header>
+
+    <main>
+        <section id="about" class="content-section">
+            <h2>About Section</h2>
+            <div class="image-container">
+                <img src="img/test1.png" alt="Test Image 1" class="test-image">
+                <img src="img/test2.jpeg" alt="Test Image 2" class="test-image">
+            </div>
+            <p>This section tests image loading and CSS styling capabilities.</p>
+        </section>
+
+        <section id="contact" class="content-section">
+            <h2>Contact Form</h2>
+            <form class="contact-form">
+                <input type="text" placeholder="Name" required>
+                <input type="email" placeholder="Email" required>
+                <textarea placeholder="Message"></textarea>
+                <button type="submit">Send</button>
+            </form>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Web Server Test</p>
+    </footer>
+</body>
+</html>
