@@ -7,17 +7,63 @@
 
 #define PORT 8080
 #define BUFFER_SIZE 4096
+#define MAX_THREADS 4 
+#define MAX_QUEUE 100
 
+// Structure for the request queue
+typedef struct
+{
+    SOCKET client_socket;
+    struct sockaddr_in client_addr;
+} Request;
+
+// Global variables for thread pool
+Request request_queue[MAX_QUEUE];
+int queue_start = 0;
+int queue_end = 0;
+int queue_size = 0;
+CRITICAL_SECTION queue_lock;
+HANDLE queue_semaphore;
+HANDLE stop_event;
+HANDLE worker_threads[MAX_THREADS];
 
 void handle_request(SOCKET client_socket);
+
+// Worker thread function
+unsigned __stdcall worker_thread(void *arg)
+{
+    while (WaitForSingleObject(stop_event, 0) != WAIT_OBJECT_0)
+    {
+        // Wait for work
+        if (WaitForSingleObject(queue_semaphore, INFINITE) == WAIT_OBJECT_0)
+        {
+            Request request;
+
+            // Get request from queue
+            EnterCriticalSection(&queue_lock);
+            if (queue_size > 0)
+            {
+                request = request_queue[queue_start];
+                queue_start = (queue_start + 1) % MAX_QUEUE;
+                queue_size--;
+            }
+            LeaveCriticalSection(&queue_lock);
+
+            // Handle the request
+            handle_request(request.client_socket);
+            closesocket(request.client_socket);
+        }
+    }
+    return 0;
+}
 
 // Thread function to handle client requests
 unsigned __stdcall handle_client(void *client_socket_ptr)
 {
     SOCKET client_socket = *(SOCKET *)client_socket_ptr;
-    handle_request(client_socket); // Your existing request handler
+    handle_request(client_socket);
     closesocket(client_socket);
-    free(client_socket_ptr); // Free the allocated memory for the socket
+    free(client_socket_ptr);
     return 0;
 }
 
@@ -68,23 +114,58 @@ int main()
 
     printf("Server running on port %d...\n", PORT);
 
+    // Initialize thread pool
+    InitializeCriticalSection(&queue_lock);
+    queue_semaphore = CreateSemaphore(NULL, 0, MAX_QUEUE, NULL);
+    stop_event = CreateEvent(NULL, TRUE, FALSE, NULL);
+
+    // Create worker threads
+    for (int i = 0; i < MAX_THREADS; i++)
+    {
+        worker_threads[i] = (HANDLE)_beginthreadex(NULL, 0, worker_thread, NULL, 0, NULL);
+    }
+
     while (1)
     {
         // Accept client connection
-        SOCKET *client_socket = (SOCKET *)malloc(sizeof(SOCKET));
-        int client_addr_len = sizeof(struct sockaddr_in);
-        *client_socket = accept(server_socket, (struct sockaddr *)&server_addr, &client_addr_len);
-        if (*client_socket == INVALID_SOCKET)
+        struct sockaddr_in client_addr;
+        int client_addr_len = sizeof(client_addr);
+        SOCKET client_socket = accept(server_socket, (struct sockaddr *)&client_addr, &client_addr_len);
+
+        if (client_socket == INVALID_SOCKET)
         {
             printf("Accept failed: %d\n", WSAGetLastError());
-            free(client_socket);
             continue;
         }
 
-        // Create a new thread for the client
-        _beginthreadex(NULL, 0, handle_client, client_socket, 0, NULL);
+        // Add request to queue
+        EnterCriticalSection(&queue_lock);
+        if (queue_size < MAX_QUEUE)
+        {
+            request_queue[queue_end].client_socket = client_socket;
+            request_queue[queue_end].client_addr = client_addr;
+            queue_end = (queue_end + 1) % MAX_QUEUE;
+            queue_size++;
+            ReleaseSemaphore(queue_semaphore, 1, NULL);
+        }
+        else
+        {
+            // Queue is full, reject connection
+            closesocket(client_socket);
+        }
+        LeaveCriticalSection(&queue_lock);
     }
 
+    // Cleanup
+    SetEvent(stop_event);
+    WaitForMultipleObjects(MAX_THREADS, worker_threads, TRUE, INFINITE);
+    for (int i = 0; i < MAX_THREADS; i++)
+    {
+        CloseHandle(worker_threads[i]);
+    }
+    DeleteCriticalSection(&queue_lock);
+    CloseHandle(queue_semaphore);
+    CloseHandle(stop_event);
     closesocket(server_socket);
     WSACleanup();
     return 0;
@@ -101,6 +182,9 @@ void handle_request(SOCKET client_socket)
     {
         return;
     }
+    DWORD thread_id = GetCurrentThreadId();
+
+    printf("[Thread %lu] Handling request...\n", thread_id);
 
     log_http_message("Incoming HTTP Request", request_buffer, bytes_received);
 
@@ -134,5 +218,7 @@ void handle_request(SOCKET client_socket)
 
     // Serve the file
     serve_file(client_socket, file_path);
-}
 
+    // Log the end of the request
+    printf("[Thread %lu] Request handled.\n", thread_id);
+}

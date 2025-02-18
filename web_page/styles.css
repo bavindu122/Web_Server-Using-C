@@ -129,6 +129,19 @@ footer {
     margin-top: 2rem;
 }
 
+.video-container {
+    margin: 2rem 0;
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.test-video {
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+
 /* Responsive design */
 @media (max-width: 768px) {
     .image-container {

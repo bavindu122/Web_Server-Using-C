@@ -1,12 +1,14 @@
 src/index.html
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Web Server Test</title>
     <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
     <nav>
         <div class="nav-logo">WebTest</div>
@@ -27,24 +29,36 @@ src/index.html
             <h2>About Section</h2>
             <div class="image-container">
                 <img src="img/test1.png" alt="Test Image 1" class="test-image">
-                <img src="img/test2.jpeg" alt="Test Image 2" class="test-image">
+                <img src="img/test2.png" alt="Test Image 2" class="test-image">
             </div>
             <p>This section tests image loading and CSS styling capabilities.</p>
         </section>
 
-        <section id="contact" class="content-section">
-            <h2>Contact Form</h2>
-            <form class="contact-form">
-                <input type="text" placeholder="Name" required>
-                <input type="email" placeholder="Email" required>
-                <textarea placeholder="Message"></textarea>
-                <button type="submit">Send</button>
-            </form>
+        <section id="video" class="content-section">
+            <h2>Video Section</h2>
+            <div class="video-container">
+                <video controls width="100%" class="test-video">
+                    <source src="vid/vid.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
         </section>
+
+        <section id="contact" class="content-section">
+            <section id="contact" class="content-section">
+                <h2>Contact Form</h2>
+                <form class="contact-form">
+                    <input type="text" placeholder="Name" required>
+                    <input type="email" placeholder="Email" required>
+                    <textarea placeholder="Message"></textarea>
+                    <button type="submit">Send</button>
+                </form>
+            </section>
     </main>
 
     <footer>
         <p>&copy; 2024 Web Server Test</p>
     </footer>
 </body>
+
 </html>
