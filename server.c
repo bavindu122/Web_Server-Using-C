@@ -10,14 +10,14 @@
 #define MAX_THREADS 4 
 #define MAX_QUEUE 100
 
-// Structure for the request queue
+//request queue
 typedef struct
 {
     SOCKET client_socket;
     struct sockaddr_in client_addr;
 } Request;
 
-// Global variables for thread pool
+// global variables for thread pool
 Request request_queue[MAX_QUEUE];
 int queue_start = 0;
 int queue_end = 0;
@@ -29,12 +29,11 @@ HANDLE worker_threads[MAX_THREADS];
 
 void handle_request(SOCKET client_socket);
 
-// Worker thread function
+// create a queue for requests to handle them in a thread pool
 unsigned __stdcall worker_thread(void *arg)
 {
     while (WaitForSingleObject(stop_event, 0) != WAIT_OBJECT_0)
     {
-        // Wait for work
         if (WaitForSingleObject(queue_semaphore, INFINITE) == WAIT_OBJECT_0)
         {
             Request request;
@@ -49,7 +48,6 @@ unsigned __stdcall worker_thread(void *arg)
             }
             LeaveCriticalSection(&queue_lock);
 
-            // Handle the request
             handle_request(request.client_socket);
             closesocket(request.client_socket);
         }
@@ -57,7 +55,6 @@ unsigned __stdcall worker_thread(void *arg)
     return 0;
 }
 
-// Thread function to handle client requests
 unsigned __stdcall handle_client(void *client_socket_ptr)
 {
     SOCKET client_socket = *(SOCKET *)client_socket_ptr;
@@ -73,14 +70,13 @@ int main()
     SOCKET server_socket;
     struct sockaddr_in server_addr;
 
-    // Initialize Winsock
+    // check Winsock
     if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
     {
         printf("Winsock initialization failed: %d\n", WSAGetLastError());
         return 1;
     }
 
-    // Create socket
     server_socket = socket(AF_INET, SOCK_STREAM, 0);
     if (server_socket == INVALID_SOCKET)
     {
@@ -94,7 +90,6 @@ int main()
     server_addr.sin_addr.s_addr = INADDR_ANY;
     server_addr.sin_port = htons(PORT);
 
-    // Bind socket
     if (bind(server_socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) == SOCKET_ERROR)
     {
         printf("Bind failed: %d\n", WSAGetLastError());
@@ -103,7 +98,6 @@ int main()
         return 1;
     }
 
-    // Listen for connections
     if (listen(server_socket, 10) == SOCKET_ERROR)
     {
         printf("Listen failed: %d\n", WSAGetLastError());
@@ -114,7 +108,7 @@ int main()
 
     printf("Server running on port %d...\n", PORT);
 
-    // Initialize thread pool
+    //Create a thread pool
     InitializeCriticalSection(&queue_lock);
     queue_semaphore = CreateSemaphore(NULL, 0, MAX_QUEUE, NULL);
     stop_event = CreateEvent(NULL, TRUE, FALSE, NULL);
@@ -150,13 +144,11 @@ int main()
         }
         else
         {
-            // Queue is full, reject connection
             closesocket(client_socket);
         }
         LeaveCriticalSection(&queue_lock);
     }
 
-    // Cleanup
     SetEvent(stop_event);
     WaitForMultipleObjects(MAX_THREADS, worker_threads, TRUE, INFINITE);
     for (int i = 0; i < MAX_THREADS; i++)
@@ -188,7 +180,7 @@ void handle_request(SOCKET client_socket)
 
     log_http_message("Incoming HTTP Request", request_buffer, bytes_received);
 
-    // Parse request line
+    //parse request line
     char *request_line = strtok(request_buffer, "\n");
     char *method = strtok(request_line, " ");
     char *path = strtok(NULL, " ");
@@ -198,15 +190,14 @@ void handle_request(SOCKET client_socket)
         send_http_response(client_socket, "400 Bad Request", "text/plain", "Invalid request");
         return;
     }
-
-    // Only support GET requests
+    //for get requests only
     if (strcmp(method, "GET") != 0)
     {
         send_http_response(client_socket, "405 Method Not Allowed", "text/plain", "Method not allowed");
         return;
     }
 
-    // Default to "index.html" if root path ("/") is requested
+    // Default "index.html"
     if (strcmp(path, "/") == 0)
     {
         path = "/index.html";
@@ -216,9 +207,7 @@ void handle_request(SOCKET client_socket)
     char file_path[256];
     snprintf(file_path, sizeof(file_path), ".%s", path);
 
-    // Serve the file
     serve_file(client_socket, file_path);
 
-    // Log the end of the request
     printf("[Thread %lu] Request handled.\n", thread_id);
 }

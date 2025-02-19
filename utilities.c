@@ -33,12 +33,12 @@ void serve_file(SOCKET client_socket, const char *file_path)
             long error_size = ftell(error_file);
             fseek(error_file, 0, SEEK_SET);
 
-            // Read 404 file content
+            // read 404 file content
             char *error_content = (char *)malloc(error_size + 1);
             fread(error_content, 1, error_size, error_file);
             fclose(error_file);
 
-            // Send 404 response with custom HTML
+            // Send 404 response 
             char headers[BUFFER_SIZE];
             snprintf(headers, sizeof(headers),
                      "HTTP/1.1 404 Not Found\r\n"
@@ -83,7 +83,7 @@ void serve_file(SOCKET client_socket, const char *file_path)
     const char *file_ext = strrchr(file_path, '.');
     const char *mime_type = get_mime_type(file_ext ? file_ext + 1 : "");
 
-    // Send HTTP response with file content
+    // Send HTTP response
     char headers[BUFFER_SIZE];
     snprintf(headers, sizeof(headers),
              "HTTP/1.1 200 OK\r\n"
@@ -98,7 +98,7 @@ void serve_file(SOCKET client_socket, const char *file_path)
     free(file_content);
 }
 
-// Map file extensions to MIME types
+// get MIME type based on file extension
 const char *get_mime_type(const char *file_ext)
 {
     if (strcmp(file_ext, "html") == 0)
@@ -118,6 +118,7 @@ const char *get_mime_type(const char *file_ext)
     return "text/plain";
 }
 
+// log HTTP message to console or use wireshark
 void log_http_message(const char *prefix, const char *message, int length)
 {
     printf("\n%s:\n", prefix);

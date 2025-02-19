@@ -25,7 +25,7 @@ void handle_request(SOCKET client_socket)
     }
 
     log_http_message("Incoming HTTP Request", request_buffer, bytes_received);
-    
+
     char *request_line = strtok(request_buffer, "\n");
     char *method = strtok(request_line, " ");
     char *path = strtok(NULL, " ");
@@ -36,8 +36,6 @@ void handle_request(SOCKET client_socket)
         printf("[Thread %lu] Bad request handled.\n", thread_id);
         return;
     }
-
-    // Only support GET requests
     if (strcmp(method, "GET") != 0)
     {
         send_http_response(client_socket, "405 Method Not Allowed", "text/plain", "Method not allowed");
@@ -45,7 +43,6 @@ void handle_request(SOCKET client_socket)
         return;
     }
 
-    // Default to "index.html" if root path ("/") is requested
     if (strcmp(path, "/") == 0)
     {
         path = "/index.html";
@@ -64,16 +61,13 @@ int main()
 {
     WSADATA wsa;
     SOCKET server_socket;
-    struct sockaddr_in server_addr;
-
-    // Initialize Winsock
+    struct sockaddr_in server_addr;\
     if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
     {
         printf("Winsock initialization failed: %d\n", WSAGetLastError());
         return 1;
     }
 
-    // Create socket
     server_socket = socket(AF_INET, SOCK_STREAM, 0);
     if (server_socket == INVALID_SOCKET)
     {
@@ -82,12 +76,10 @@ int main()
         return 1;
     }
 
-    // Configure server address
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = INADDR_ANY;
     server_addr.sin_port = htons(PORT);
 
-    // Bind socket
     if (bind(server_socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) == SOCKET_ERROR)
     {
         printf("Bind failed: %d\n", WSAGetLastError());
@@ -96,7 +88,6 @@ int main()
         return 1;
     }
 
-    // Listen for connections
     if (listen(server_socket, 1) == SOCKET_ERROR)
     {
         printf("Listen failed: %d\n", WSAGetLastError());
@@ -110,7 +101,6 @@ int main()
 
     while (1)
     {
-        // Accept client connection
         struct sockaddr_in client_addr;
         int client_addr_len = sizeof(client_addr);
         SOCKET client_socket = accept(server_socket, (struct sockaddr *)&client_addr, &client_addr_len);
@@ -121,7 +111,7 @@ int main()
             continue;
         }
 
-        // Log client connection with thread ID
+        // log client connection with thread ID
         char client_ip[INET_ADDRSTRLEN];
         inet_ntop(AF_INET, &(client_addr.sin_addr), client_ip, INET_ADDRSTRLEN);
         printf("[Thread %lu] New connection from %s:%d\n",
@@ -133,7 +123,7 @@ int main()
         handle_request(client_socket);
         closesocket(client_socket);
     }
-    // Cleanup
+    
     closesocket(server_socket);
     WSACleanup();
     return 0;
